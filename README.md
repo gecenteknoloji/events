@@ -46,6 +46,10 @@ Starts before the first scene. Development Builds log `[GtEvents] flush 204 <cou
 
 Update: change the tag at the end of the git URL in `Packages/manifest.json` (for example `#v1.1.0`).
 
+## Game-specific events
+
+Any event or param that follows the rules in [PROTOCOL.md](PROTOCOL.md) is stored, with no setup on the collector side: add it to the app's event catalog and send it through the same `trackEvent` / `GtEvents.Track` call.
+
 ## Adapty webhook
 
 Adapty dashboard > Integrations > Webhook, production and sandbox URL `https://api.gecenteknoloji.com/v1/webhooks/adapty/<package-name>`, "Authorization header value": the key for this app, asked from the app owner before setup.

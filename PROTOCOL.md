@@ -51,6 +51,8 @@ No keys, no auth header. The server adds country and receive time itself.
 
 One invalid event rejects the whole batch.
 
+Apps may add their own events and params (a game-specific mode, a new reward, an extra field on an existing event) within these rules. The collector stores any valid name; nothing is registered on the server side. Do not reuse a catalog name with a different meaning.
+
 ## Responses and what the client does
 
 | Status | Meaning | Client |
