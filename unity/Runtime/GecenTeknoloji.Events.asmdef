@@ -1,0 +1,10 @@
+{
+  "name": "GecenTeknoloji.Events",
+  "rootNamespace": "GecenTeknoloji.Events",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true,
+  "noEngineReferences": false
+}

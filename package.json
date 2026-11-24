@@ -1,0 +1,11 @@
+{
+  "name": "gecenteknoloji-events",
+  "version": "1.0.0",
+  "description": "React Native client for the Gecen Teknoloji event collector",
+  "main": "react-native/dist/index.js",
+  "react-native": "react-native/dist/index.js",
+  "types": "react-native/dist/index.d.ts",
+  "files": ["react-native/dist", "PROTOCOL.md", "CHANGELOG.md"],
+  "peerDependencies": { "react-native": "*" },
+  "license": "UNLICENSED"
+}
