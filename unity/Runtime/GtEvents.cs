@@ -16,7 +16,7 @@ namespace GecenTeknoloji.Events
 {
     public static class GtEvents
     {
-        public const string SdkVersion = "1.0.0";
+        public const string SdkVersion = "1.1.0";
 
         /// <summary>Collector base URL. Change only for testing.</summary>
         public static string Endpoint = "https://api.gecenteknoloji.com";
@@ -64,7 +64,7 @@ namespace GecenTeknoloji.Events
                     DeviceModel = Cut(SystemInfo.deviceModel, 64),
                     OsVersion = Cut(SystemInfo.operatingSystem, 32),
                 };
-                Core = new EventsCore(identity, () => Guid.NewGuid().ToString("D"), NowMs);
+                Core = new EventsCore(identity, () => Guid.NewGuid().ToString("D"), NowMs, Debug.isDebugBuild);
                 Storage.Restore(Core);
 
                 var go = new GameObject("GtEvents") { hideFlags = HideFlags.HideInHierarchy };
@@ -164,6 +164,7 @@ namespace GecenTeknoloji.Events
         const string KeyInstall = "gt_events.install_id";
         const string KeyConsent = "gt_events.consent";
         const string KeyDropped = "gt_events.dropped";
+        const string KeyTestKey = "gt_events.test_key";
         static bool dirty;
 
         static string QueuePath => Path.Combine(Application.persistentDataPath, "gt-events", "queue.jsonl");
@@ -180,6 +181,7 @@ namespace GecenTeknoloji.Events
                 int dropped = PlayerPrefs.GetInt(KeyDropped, 0);
                 string[] lines = File.Exists(QueuePath) ? File.ReadAllLines(QueuePath, Encoding.UTF8) : null;
                 core.Restore(id, consent, dropped, lines);
+                if (core.TestKey != null) core.RestoreTestKey(PlayerPrefs.GetString(KeyTestKey, null));
             }
             catch (Exception e) { GtEvents.Warn("restore failed: " + e.Message); }
             SaveNow(core);
@@ -193,6 +195,7 @@ namespace GecenTeknoloji.Events
                 string id;
                 bool consent;
                 int dropped;
+                string testKey;
                 lock (GtEvents.Gate)
                 {
                     lines = new string[core.Count];
@@ -200,6 +203,7 @@ namespace GecenTeknoloji.Events
                     id = core.InstallId;
                     consent = core.Consent;
                     dropped = core.Dropped;
+                    testKey = core.TestKey;
                 }
                 Directory.CreateDirectory(Path.GetDirectoryName(QueuePath));
                 string tmp = QueuePath + ".tmp";
@@ -209,6 +213,7 @@ namespace GecenTeknoloji.Events
                 PlayerPrefs.SetString(KeyInstall, id);
                 PlayerPrefs.SetInt(KeyConsent, consent ? 1 : 0);
                 PlayerPrefs.SetInt(KeyDropped, dropped);
+                if (testKey != null) PlayerPrefs.SetString(KeyTestKey, testKey);
                 PlayerPrefs.Save();
                 dirty = false;
             }
@@ -296,11 +301,23 @@ namespace GecenTeknoloji.Events
                     Outcome outcome;
                     lock (GtEvents.Gate) outcome = GtEvents.Core.OnSendResult(status, count, droppedSent);
                     GtEvents.Log("flush " + status + " " + count);
+                    if (status == 204) LogTestReport();
                     Storage.MarkDirty();
                     if (outcome == Outcome.Retry) break;
                 }
             }
             finally { sending = false; }
+        }
+
+        static void LogTestReport()
+        {
+            try
+            {
+                string line;
+                lock (GtEvents.Gate) line = GtEvents.Core.TestReportLineOnce(GtEvents.Endpoint);
+                if (line != null) Debug.Log("[GtEvents] " + line);
+            }
+            catch { }
         }
 
         internal IEnumerator Delete(Action<bool> done)
@@ -330,6 +347,9 @@ namespace GecenTeknoloji.Events
                     timeout = Limits.TimeoutSeconds,
                 };
                 req.SetRequestHeader("Content-Type", "application/json");
+                string testKey;
+                lock (GtEvents.Gate) testKey = GtEvents.Core.TestKeyHeaderFor(path);
+                if (testKey != null) req.SetRequestHeader("X-GT-Test-Key", testKey);
             }
             catch (Exception e)
             {

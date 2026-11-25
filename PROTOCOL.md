@@ -67,7 +67,28 @@ Client rules: queue at most 2000 events on the device (drop the oldest and count
 
 ## Delete my data
 
-`POST https://api.gecenteknoloji.com/v1/delete` with `{ "app_id": "...", "install_id": "..." }` returns `202`. After that the client creates a new `install_id`. Stored events of that install are removed by the nightly purge.
+`POST https://api.gecenteknoloji.com/v1/delete` with `{ "app_id": "...", "install_id": "..." }` returns `202`. After that the client creates a new `install_id`. Stored events of that install are removed by the nightly purge; its test rows (see Test report) are removed at once. The test key stays on the device.
+
+## Test report
+
+Lets the developer (or their AI assistant) check an integration against the event catalog on the data the collector actually received, for their own test device only.
+
+- **Development builds only** (React Native `__DEV__`, Unity `Debug.isDebugBuild`). Release builds never send a test key.
+- On first use the client creates a **test key**: 64 lowercase hex characters (two random UUID v4 values without dashes), stored on the device next to the queue. It is not derived from any device identifier and is not reset by "delete my data".
+- Every `/v1/events` request from a development build carries the header `X-GT-Test-Key: <key>`. Format: `^[0-9a-f]{64}$`; anything else is ignored. The batch itself is handled exactly as without the header.
+- The collector stores only the key's SHA-256. Every stored test batch is tagged with it, and a report shows only the batches sent with the key it is asked with. Test batches are kept **7 days**, at most 5000 events per install and key, and are stored after the answer, so they never delay it. "Delete my data" removes them at once, and a later batch of a deleted install id is not kept. Resent events (same `session_id` and `seq`) are counted once.
+- After the first `204` the client logs once, in development builds: `[gt-events] test report: curl ...` (Unity `[GtEvents] test report: curl ...`), a ready command for the request below.
+
+`POST https://api.gecenteknoloji.com/v1/test/report`, body `{ "app_id": "...", "install_id": "...", "test_key": "..." }` (at most 1 KiB), rate limit as for events.
+
+| Status | Meaning |
+|---|---|
+| `200` | JSON report (below) |
+| `400` | Bad body |
+| `404` | No test data for this app, install and key. A wrong key and missing data answer the same way |
+| `429` | Rate limited |
+
+Report fields: `verdict` (`pass` when `errors` is empty, else `fail`), `summary` (events, sessions, first and last receive time, sdk, app version, platform, dropped), `errors`, `warnings` and `info` (each `{ code, message, event?, count?, examples? }`), `coverage` (for each question S1-S6 of the measurement guide and each event family: catalog events seen and not seen), `game_specific` (names outside the catalog). Error codes: `likely_typo` (name outside the catalog within 2 edits of a catalog name), `missing_param` (required param absent), `bad_value` (fixed-value param outside its list), `missing_revenue` (`ad_impression` / `purchase` without positive `value` and `currency`), `balance_gap` (`balance_after` does not follow from the previous balance and `amount`, so a currency source or sink is not sent), `zero_amount`, `purchase_failed_without_stage`. Warning codes: `offer_unpaired` (`offer_shown` and `offer_action` counts differ per placement), `level_unfinished` (`level_start` with no `level_complete` / `level_fail` / `level_quit` in the same session), `dropped_events`. Info: `not_seen` (catalog events not seen; an event for a feature the game does not have stays unseen and is written as "feature missing" in the coverage table).
 
 ## Adapty webhook
 

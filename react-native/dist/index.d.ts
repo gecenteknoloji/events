@@ -1,4 +1,4 @@
-export declare const SDK_VERSION = "1.0.0";
+export declare const SDK_VERSION = "1.1.0";
 export declare const DEFAULT_ENDPOINT = "https://api.gecenteknoloji.com";
 export interface InitOptions {
     /** Only needed when the app has none of expo-application / react-native-device-info. */

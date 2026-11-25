@@ -170,6 +170,33 @@ static class CoreTests
             Check(off.Count == 0 && !off.Consent, "restored consent=false clears everything");
         }
 
+        {
+            Console.WriteLine("test report (development builds)");
+            var ep = "https://api.gecenteknoloji.com";
+            EventsCore Dev() => new EventsCore(new Identity { Sdk = "unity/1.0.0", AppId = "com.gecenteknoloji.test", Platform = "ios" },
+                () => $"00000000-0000-4000-8000-{(++uuidN).ToString().PadLeft(12, '0')}", () => now, true);
+            var d = Dev();
+            Check(d.TestKey != null && System.Text.RegularExpressions.Regex.IsMatch(d.TestKey, "^[0-9a-f]{64}$"), "dev key is 64 lowercase hex");
+            Check(d.TestKeyHeaderFor("/v1/events") == d.TestKey && d.TestKeyHeaderFor("/v1/delete") == null, "header only on the events path");
+            string key = d.TestKey;
+            d.ResetAfterDelete();
+            Check(d.TestKey == key, "test key survives delete");
+            var d2 = Dev();
+            d2.RestoreTestKey(key);
+            d2.RestoreTestKey("not-a-key");
+            Check(d2.TestKey == key, "persisted key is restored, invalid value ignored");
+            string id1 = d.InstallId;
+            string line = d.TestReportLineOnce(ep);
+            Check(line == $"test report: curl -s -X POST {ep}/v1/test/report -H 'content-type: application/json' -d '{{\"app_id\":\"com.gecenteknoloji.test\",\"install_id\":\"{id1}\",\"test_key\":\"{key}\"}}'", "report line has the exact format");
+            Check(d.TestReportLineOnce(ep) == null, "one log line per install id");
+            d.ResetAfterDelete();
+            Check(d.TestReportLineOnce(ep) != null && d.TestReportLineOnce(ep) == null, "new install id logs again, once");
+            var rel = NewCore();
+            Check(rel.TestKey == null && rel.TestKeyHeaderFor("/v1/events") == null && rel.TestReportLineOnce(ep) == null, "release build: no key, no header, no log");
+            rel.RestoreTestKey(key);
+            Check(rel.TestKey == null, "release build ignores a persisted key");
+        }
+
         if (args.Contains("--live"))
         {
             Console.WriteLine("live");

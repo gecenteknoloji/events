@@ -13,7 +13,7 @@
  */
 import { AppState, Platform } from 'react-native';
 import { createEventsClient } from './client';
-export const SDK_VERSION = '1.0.0';
+export const SDK_VERSION = '1.1.0';
 export const DEFAULT_ENDPOINT = 'https://api.gecenteknoloji.com';
 // Metro treats a require inside try/catch as optional: a missing package is
 // skipped at build time instead of failing the bundle.
@@ -119,6 +119,7 @@ function start(opts = {}) {
             endpoint: (_b = opts.endpoint) !== null && _b !== void 0 ? _b : DEFAULT_ENDPOINT,
             now: () => Date.now(),
             randomUUID,
+            dev: isDev,
             fetch: (url, init) => fetch(url, init),
             log: debug ? (m) => console.log(`[gt-events] ${m}`) : undefined,
         });

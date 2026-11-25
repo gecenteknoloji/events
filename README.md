@@ -15,11 +15,22 @@ An integration is complete when these questions can be answered **for this game*
 1. Read the measurement guide you received from the app owner in full. Section 0 explains the six questions, section 0.1 lists the steps, section 5 is the event catalog.
 2. Map the game before writing code: screens and flow, the progression unit, every point where a player can stop, every source and sink of in-game currency, every ad call, product and offer. Match each to a catalog event; where the catalog has nothing for a moment that answers one of the questions, design a game-specific event. Show this coverage table to the developer and get approval first.
 3. Send every event through `trackEvent` / `GtEvents.Track`, from the same place as the Firebase call. Do not modify this package.
+4. Check the result yourself with the test report (below) until `verdict` is `pass`.
+
+## Test report
+
+Development builds (`__DEV__`, Unity Development Build) log one line after the first successful send:
+
+```
+[gt-events] test report: curl -s -X POST https://api.gecenteknoloji.com/v1/test/report -H 'content-type: application/json' -d '{"app_id":"...","install_id":"...","test_key":"..."}'
+```
+
+Run it as it is. The answer compares the events this test device sent with the event catalog: `verdict`, `errors` (misspelled names, missing params, revenue without value, gaps in `balance_after`), `warnings`, `coverage` per question and event family, and `game_specific` names. Fix every error, play again, run it again. The test key is created on the device and only its SHA-256 is stored, so the report shows this device's data to whoever holds this key and nobody else; do not paste the command anywhere public. Release builds send no key. Details: [PROTOCOL.md](PROTOCOL.md#test-report).
 
 ## React Native
 
 ```bash
-npm install github:gecenteknoloji/events#v1.0.0
+npm install github:gecenteknoloji/events#v1.1.0
 ```
 
 ```ts
@@ -41,7 +52,7 @@ Update: change the tag in `package.json` (for example `#v1.1.0`) and run `npm in
 Package Manager > Add package from git URL:
 
 ```
-https://github.com/gecenteknoloji/events.git?path=/unity#v1.0.0
+https://github.com/gecenteknoloji/events.git?path=/unity#v1.1.0
 ```
 
 ```csharp

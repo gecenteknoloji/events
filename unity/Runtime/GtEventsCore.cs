@@ -164,13 +164,45 @@ namespace GecenTeknoloji.Events
         public int Count => queue.Count;
         public IReadOnlyList<string> QueuedJson => queue;
 
-        public EventsCore(Identity identity, Func<string> newUuid, Func<long> nowMs)
+        readonly bool devBuild;
+        string reportedInstall;
+
+        /// <summary>Test key (64 lowercase hex) in development builds, null in release builds.</summary>
+        public string TestKey { get; private set; }
+
+        public EventsCore(Identity identity, Func<string> newUuid, Func<long> nowMs, bool devBuild = false)
         {
+            this.devBuild = devBuild;
+            if (devBuild) TestKey = NewTestKey();
             this.identity = identity;
             this.newUuid = newUuid;
             this.nowMs = nowMs;
             sessionId = Uuid();
             InstallId = Uuid();
+        }
+
+        static string NewTestKey() =>
+            (Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N")).ToLowerInvariant();
+
+        /// <summary>Restores the persisted test key (development builds only; invalid values are ignored).</summary>
+        public void RestoreTestKey(string key)
+        {
+            if (devBuild && key != null && Regex.IsMatch(key, "^[0-9a-f]{64}$", RegexOptions.CultureInvariant)) TestKey = key;
+        }
+
+        /// <summary>Value for the X-GT-Test-Key header: only for /v1/events in development builds.</summary>
+        public string TestKeyHeaderFor(string path) => devBuild && path == "/v1/events" ? TestKey : null;
+
+        /// <summary>
+        /// Call after a real 204 for /v1/events. Returns the ready test report command once per
+        /// install id (development builds only), otherwise null.
+        /// </summary>
+        public string TestReportLineOnce(string endpoint)
+        {
+            if (!devBuild || TestKey == null || reportedInstall == InstallId) return null;
+            reportedInstall = InstallId;
+            return "test report: curl -s -X POST " + endpoint + "/v1/test/report -H 'content-type: application/json' -d '{\"app_id\":\"" +
+                identity.AppId + "\",\"install_id\":\"" + InstallId + "\",\"test_key\":\"" + TestKey + "\"}'";
         }
 
         string Uuid()

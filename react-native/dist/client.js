@@ -63,6 +63,8 @@ export function createEventsClient(identity, deps) {
         return fallbackUUID();
     };
     let installId = null;
+    let testKey = null;
+    let reportLoggedFor = null;
     let consent = true;
     let consentSetBeforeLoad = false;
     let events = [];
@@ -85,6 +87,8 @@ export function createEventsClient(identity, deps) {
                 const s = JSON.parse(raw);
                 if (typeof s.install_id === 'string')
                     installId = s.install_id;
+                if (deps.dev && typeof s.test_key === 'string' && /^[0-9a-f]{64}$/.test(s.test_key))
+                    testKey = s.test_key;
                 if (!consentSetBeforeLoad && s.consent === false)
                     consent = false;
                 if (Array.isArray(s.events)) {
@@ -106,6 +110,8 @@ export function createEventsClient(identity, deps) {
         }
         if (!installId)
             installId = uuid();
+        if (deps.dev && !testKey)
+            testKey = (uuid() + uuid()).replace(/-/g, '');
         if (!consent)
             events = [];
     })();
@@ -116,7 +122,7 @@ export function createEventsClient(identity, deps) {
                 clearTimeout(persistTimer);
                 persistTimer = null;
             }
-            await deps.store.setItem(STORAGE_KEY, JSON.stringify({ install_id: installId, consent, events, dropped }));
+            await deps.store.setItem(STORAGE_KEY, JSON.stringify({ install_id: installId, ...(testKey ? { test_key: testKey } : {}), consent, events, dropped }));
         }
         catch (e) {
             log(`events: could not save state (${String(e)})`);
@@ -150,10 +156,10 @@ export function createEventsClient(identity, deps) {
             log(`events: a newer client is available: ${kind}/${latest} (installed ${identity.sdk}). See CHANGELOG.md`);
         }
     }
-    async function send(path, body) {
+    async function send(path, body, extraHeaders) {
         var _a;
         try {
-            const res = await withTimeout((signal) => deps.fetch(deps.endpoint + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body, signal }), LIMITS.timeoutMs);
+            const res = await withTimeout((signal) => deps.fetch(deps.endpoint + path, { method: 'POST', headers: { 'content-type': 'application/json', ...extraHeaders }, body, signal }), LIMITS.timeoutMs);
             try {
                 noticeUpdate((_a = res.headers) === null || _a === void 0 ? void 0 : _a.get('X-GT-SDK-Latest'));
             }
@@ -175,9 +181,14 @@ export function createEventsClient(identity, deps) {
             const env = envelope();
             const droppedSent = dropped;
             const { body, count } = pickBatch(env, events);
-            const status = await send('/v1/events', body);
+            const status = await send('/v1/events', body, deps.dev && testKey ? { 'X-GT-Test-Key': testKey } : undefined);
             const outcome = classifyStatus(status);
             log(`events flush ${String(status)} ${count}`);
+            if (status === 204 && deps.dev && testKey && installId && reportLoggedFor !== installId) {
+                reportLoggedFor = installId;
+                log(`test report: curl -s -X POST ${deps.endpoint}/v1/test/report -H 'content-type: application/json' ` +
+                    `-d '{"app_id":"${identity.app_id}","install_id":"${installId}","test_key":"${testKey}"}'`);
+            }
             if (outcome === 'retry') {
                 nextTryAt = deps.now() + nextBackoffMs(attempt);
                 attempt += 1;

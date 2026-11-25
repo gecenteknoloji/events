@@ -20,6 +20,8 @@ export interface ClientDeps {
         };
     }>;
     log?(message: string): void;
+    /** Development build: enables the test key header and the test report log line. */
+    dev?: boolean;
 }
 export interface Identity {
     sdk: string;
