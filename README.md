@@ -4,6 +4,18 @@ Client for the Gecen Teknoloji event collector (`https://api.gecenteknoloji.com`
 
 Contract between apps and the collector: [PROTOCOL.md](PROTOCOL.md). Releases: [CHANGELOG.md](CHANGELOG.md).
 
+## What it is for
+
+The events sent through this SDK are how the game gets better. Every week they are read to answer six questions: where players get stuck or stop, what they do in the game, whether they come back, how much each player earns, what would raise that, and what is broken. The answers turn into changes in the game: an easier level, a fixed flow, a different offer or ad placement, a new price or reward.
+
+An integration is complete when these questions can be answered **for this game**, not when a list of events has been copied.
+
+## Integrating (also with an AI assistant)
+
+1. Read the measurement guide you received from the app owner in full. Section 0 explains the six questions, section 0.1 lists the steps, section 5 is the event catalog.
+2. Map the game before writing code: screens and flow, the progression unit, every point where a player can stop, every source and sink of in-game currency, every ad call, product and offer. Match each to a catalog event; where the catalog has nothing for a moment that answers one of the questions, design a game-specific event. Show this coverage table to the developer and get approval first.
+3. Send every event through `trackEvent` / `GtEvents.Track`, from the same place as the Firebase call. Do not modify this package.
+
 ## React Native
 
 ```bash
