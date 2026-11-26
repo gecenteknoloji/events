@@ -94,6 +94,51 @@ Report fields: `verdict` (`pass` when `errors` is empty, else `fail`), `summary`
 
 `POST https://api.gecenteknoloji.com/v1/webhooks/adapty/<app_id>` with header `Authorization: <secret>`. The key is per app: ask the app owner for it before setting up the webhook. Set it once in Adapty (Integrations > Webhook): that URL with the app's package name at the end for production and sandbox, and the key in "Authorization header value". Apps without an issued key, and wrong keys, get `401`; nothing is accepted on first use. The app comes from the URL, the platform from `event_properties.store`. Each event becomes one row with `source = "adapty"`, `name = "adapty_<event_type>"`, `value` = `price_usd` (currency `USD`), other scalar `event_properties` in `params` (Adapty's local `currency` is stored as `local_currency`). Rows join app events through `adapty_profile_id`, which the client sets with `setEventsAdaptyProfileId` / `GtEvents.SetAdaptyProfileId`.
 
+## Server refund
+
+For apps that verify purchases on their own server (apps that use Adapty get refunds through the Adapty webhook instead). When the store reports a refund (App Store Server Notifications `REFUND`, Google Play RTDN or the Voided Purchases API), the server sends it here. The client never sends `refund`.
+
+`POST https://api.gecenteknoloji.com/v1/server/<app_id>/refund` with header `Authorization: Bearer <key>` and a JSON body of at most 4 KB, one refund per request. The key is per app: ask the app owner for it before setting up the server. It stays on the server and never goes into the app.
+
+```json
+{
+  "v": 1,
+  "platform": "ios",
+  "environment": "production",
+  "transaction_id": "2000000123456789",
+  "ts": 1764150000000,
+  "value": 4.99,
+  "currency": "USD",
+  "sku": "coins_500",
+  "original_transaction_id": "2000000123456789",
+  "reason": "customer_request",
+  "install_id": null,
+  "user_id": null
+}
+```
+
+| Field | Rule |
+|---|---|
+| `v` | Required, `1` |
+| `platform` | Required, `ios` or `android` |
+| `environment` | Required, `production` or `sandbox`. Sandbox refunds are checked and answered but not stored |
+| `transaction_id` | Required, 1-100 chars. The same value as `transaction_id` of the app's `purchase` event; this is how the refund joins the purchase and its install |
+| `ts` | Required, refund time from the store notification, Unix ms, at most 365 days in the past and 1 day in the future |
+| `value`, `currency` | Optional, together: refunded amount (>= 0) and ISO 4217 code. Prefer the same amount and currency as the `purchase` event |
+| `sku`, `original_transaction_id`, `reason` | Optional, 1-100 chars |
+| `install_id` | Optional, the module's install id if the server has it (UUID) |
+| `user_id` | Optional, app's own account id, 1-128 chars |
+
+Unknown fields are ignored. The request becomes one row with `source = "server"`, `name = "refund"`, `sdk = "server/1"`, `transaction_id`, `environment` and the optional strings in `params`, and `client_ts = ts`.
+
+| Response | Server does |
+|---|---|
+| `200 {"stored": true}` / `200 {"stored": false}` (sandbox) | Done |
+| `400` (bad body, reason in the text), `413` | Log and drop, do not retry |
+| `401` | Wrong or missing key, or the app has no key: fix the configuration |
+| `404` | Bad app id in the URL |
+| `429`, `503` | Retry later with backoff. Retrying the same refund is safe: rows with the same `transaction_id` and `ts` count once |
+
 ## Updates
 
 Every accepted batch answers with `X-GT-SDK-Latest: rn/<version> unity/<version>`. Clients log once in development builds when a newer version exists. Releases and changes: `CHANGELOG.md`.
