@@ -1,6 +1,6 @@
 {
   "name": "com.gecenteknoloji.events",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "displayName": "Gecen Teknoloji Events",
   "description": "Client for the Gecen Teknoloji event collector (api.gecenteknoloji.com). Queues events on disk and sends them in batches.",
   "unity": "2021.3",

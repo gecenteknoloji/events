@@ -13,13 +13,64 @@
  */
 import { AppState, Platform } from 'react-native';
 import { createEventsClient } from './client';
-export const SDK_VERSION = '1.1.0';
+export const SDK_VERSION = '1.1.1';
 export const DEFAULT_ENDPOINT = 'https://api.gecenteknoloji.com';
-// Metro treats a require inside try/catch as optional: a missing package is
-// skipped at build time instead of failing the bundle.
-function optional(load) {
+/** Runs `fn`, returns undefined if it throws. Not for require: see the loaders below. */
+function optional(fn) {
     try {
-        return load();
+        return fn();
+    }
+    catch {
+        return undefined;
+    }
+}
+// Optional packages. Metro skips a missing package only when its require is written
+// directly inside a try block; a require inside a callback (optional(() => require(x)))
+// fails the bundle. Keep one loader per package in this shape
+// (test/metro-optional.test.ts checks the source and the tsc output).
+function loadMmkv() {
+    try {
+        return require('react-native-mmkv');
+    }
+    catch {
+        return undefined;
+    }
+}
+function loadAsyncStorage() {
+    try {
+        return require('@react-native-async-storage/async-storage');
+    }
+    catch {
+        return undefined;
+    }
+}
+function loadExpoCrypto() {
+    try {
+        return require('expo-crypto');
+    }
+    catch {
+        return undefined;
+    }
+}
+function loadExpoApplication() {
+    try {
+        return require('expo-application');
+    }
+    catch {
+        return undefined;
+    }
+}
+function loadDeviceInfo() {
+    try {
+        return require('react-native-device-info');
+    }
+    catch {
+        return undefined;
+    }
+}
+function loadExpoDevice() {
+    try {
+        return require('expo-device');
     }
     catch {
         return undefined;
@@ -32,7 +83,7 @@ function devLog(message) {
 }
 function pickStore() {
     var _a, _b;
-    const mmkvModule = optional(() => require('react-native-mmkv'));
+    const mmkvModule = loadMmkv();
     if (mmkvModule) {
         const mmkv = (_a = optional(() => { var _a; return (_a = mmkvModule.createMMKV) === null || _a === void 0 ? void 0 : _a.call(mmkvModule, { id: 'gt-events' }); })) !== null && _a !== void 0 ? _a : optional(() => (mmkvModule.MMKV ? new mmkvModule.MMKV({ id: 'gt-events' }) : undefined));
         if (mmkv) {
@@ -48,7 +99,7 @@ function pickStore() {
             };
         }
     }
-    const asyncStorage = optional(() => require('@react-native-async-storage/async-storage'));
+    const asyncStorage = loadAsyncStorage();
     const as = (_b = asyncStorage === null || asyncStorage === void 0 ? void 0 : asyncStorage.default) !== null && _b !== void 0 ? _b : asyncStorage;
     if (as && typeof as.getItem === 'function') {
         return {
@@ -69,7 +120,7 @@ function randomUUID() {
     const c = globalThis.crypto;
     if (c && typeof c.randomUUID === 'function')
         return c.randomUUID();
-    const expoCrypto = optional(() => require('expo-crypto'));
+    const expoCrypto = loadExpoCrypto();
     if (expoCrypto && typeof expoCrypto.randomUUID === 'function')
         return expoCrypto.randomUUID();
     throw new Error('no uuid source'); // client.ts falls back to its own generator
@@ -79,10 +130,10 @@ function str(x) {
 }
 function detectIdentity(opts) {
     var _a, _b, _c, _d, _e, _f, _g, _h;
-    const app = optional(() => require('expo-application'));
-    const deviceInfoModule = optional(() => require('react-native-device-info'));
+    const app = loadExpoApplication();
+    const deviceInfoModule = loadDeviceInfo();
     const deviceInfo = (_a = deviceInfoModule === null || deviceInfoModule === void 0 ? void 0 : deviceInfoModule.default) !== null && _a !== void 0 ? _a : deviceInfoModule;
-    const device = optional(() => require('expo-device'));
+    const device = loadExpoDevice();
     const appId = (_c = (_b = str(opts.appId)) !== null && _b !== void 0 ? _b : str(app === null || app === void 0 ? void 0 : app.applicationId)) !== null && _c !== void 0 ? _c : str(optional(() => deviceInfo === null || deviceInfo === void 0 ? void 0 : deviceInfo.getBundleId()));
     const appVersion = (_e = (_d = str(opts.appVersion)) !== null && _d !== void 0 ? _d : str(app === null || app === void 0 ? void 0 : app.nativeApplicationVersion)) !== null && _e !== void 0 ? _e : str(optional(() => deviceInfo === null || deviceInfo === void 0 ? void 0 : deviceInfo.getVersion()));
     const model = (_g = (_f = str(device === null || device === void 0 ? void 0 : device.modelName)) !== null && _f !== void 0 ? _f : str(optional(() => deviceInfo === null || deviceInfo === void 0 ? void 0 : deviceInfo.getModel()))) !== null && _g !== void 0 ? _g : str((_h = Platform.constants) === null || _h === void 0 ? void 0 : _h.Model);

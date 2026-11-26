@@ -30,7 +30,7 @@ Run it as it is. The answer compares the events this test device sent with the e
 ## React Native
 
 ```bash
-npm install github:gecenteknoloji/events#v1.1.0
+npm install github:gecenteknoloji/events#v1.1.1
 ```
 
 ```ts
@@ -45,14 +45,14 @@ const accepted = await deleteEventsData();                               // Sett
 
 Uses these packages when the app has them: `react-native-mmkv` or `@react-native-async-storage/async-storage` (queue survives restarts), `expo-application` or `react-native-device-info` (package name and version). With neither of the last two, call `initEvents({ appId, appVersion })` once at startup. Development builds log every send: `[gt-events] events flush 204 <count>`.
 
-Update: change the tag in `package.json` (for example `#v1.1.0`) and run `npm install`.
+Update: change the tag in `package.json` (for example `#v1.1.1`) and run `npm install`.
 
 ## Unity (2021.3+, iOS and Android)
 
 Package Manager > Add package from git URL:
 
 ```
-https://github.com/gecenteknoloji/events.git?path=/unity#v1.1.0
+https://github.com/gecenteknoloji/events.git?path=/unity#v1.1.1
 ```
 
 ```csharp
@@ -67,7 +67,7 @@ GtEvents.DeleteData(ok => { /* Settings > Delete my data */ });
 
 Starts before the first scene. Development Builds log `[GtEvents] flush 204 <count>`. In the Editor events are only logged; set `GtEvents.SendInEditor = true` to really send.
 
-Update: change the tag at the end of the git URL in `Packages/manifest.json` (for example `#v1.1.0`).
+Update: change the tag at the end of the git URL in `Packages/manifest.json` (for example `#v1.1.1`).
 
 ## Game-specific events
 

@@ -2,6 +2,10 @@
 
 Versions are git tags (`v1.0.0`). React Native and Unity are released together with the same number.
 
+## 1.1.1 (2026-11-26)
+
+- React Native: the app no longer fails to bundle when some optional packages are missing (`Unable to resolve "@react-native-async-storage/async-storage"`). Metro skips a missing package only when its `require` is written directly inside `try`; 1.1.0 wrapped it in a callback, so every optional package was required. Apps that added a Metro `resolveRequest` mapping for `gecenteknoloji-events` as a workaround can remove it after updating.
+
 ## 1.1.0 (2026-11-25)
 
 - Test report: development builds create a test key, send it as `X-GT-Test-Key` and log once a ready `curl` command for `POST /v1/test/report`. The report checks the events of this test install against the event catalog (unknown or misspelled names, missing params, revenue, balance continuity, offer pairs, coverage per question). Only the key's SHA-256 is stored; release builds send nothing extra.

@@ -16,7 +16,7 @@ namespace GecenTeknoloji.Events
 {
     public static class GtEvents
     {
-        public const string SdkVersion = "1.1.0";
+        public const string SdkVersion = "1.1.1";
 
         /// <summary>Collector base URL. Change only for testing.</summary>
         public static string Endpoint = "https://api.gecenteknoloji.com";
